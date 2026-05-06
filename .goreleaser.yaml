@@ -1,0 +1,82 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: hexsign
+    main: .
+    binary: hexsign
+    env:
+      - CGO_ENABLED=0
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    ignore:
+      - goos: windows
+        goarch: arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X github.com/hexsign/hexsign-cli/internal/config.DefaultUserClientID={{.Env.HEXSIGN_CLI_CLIENT_ID}}
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    name_template: "hexsign_{{.Version}}_{{.Os}}_{{.Arch}}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - README.md
+      - SECURITY.md
+
+checksum:
+  name_template: checksums.txt
+
+homebrew_casks:
+  - name: hexsign
+    repository:
+      owner: hexsign
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    homepage: https://hexsign.io
+    description: HexSign CLI — manage Apple signing material from your terminal or CI.
+    license: MIT
+    commit_author:
+      name: hexsign-bot
+      email: bot@hexsign.io
+    commit_msg_template: "hexsign {{ .Tag }}"
+    hooks:
+      post:
+        install: |
+          if OS.mac? && Hardware::CPU.arm?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/hexsign"]
+          end
+
+release:
+  github:
+    owner: hexsign
+    name: hexsign-cli
+  draft: false
+  prerelease: auto
+  name_template: "v{{.Version}}"
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^chore:"
+      - "^test:"
+      - "^ci:"
+      - "Merge pull request"
+      - "Merge branch"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"

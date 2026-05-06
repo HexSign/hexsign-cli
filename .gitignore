@@ -1,0 +1,12 @@
+bin/
+dist/
+*.test
+*.out
+.env
+.env.local
+hexsign
+
+# `output` is a common name in some users' global gitignores; make sure
+# our internal/output package is never silently swallowed.
+!internal/output/
+!internal/output/**
