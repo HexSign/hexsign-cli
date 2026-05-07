@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hexsign/hexsign-cli/internal/config"
+	"github.com/hexsign/hexsign-cli/internal/httpx"
 	"github.com/spf13/cobra"
 )
 
@@ -20,9 +21,14 @@ var configShowCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		pinning := "disabled"
+		if httpx.PinningEnabled() {
+			pinning = "enabled"
+		}
 		fmt.Fprintf(cmd.OutOrStdout(),
-			"callback_port:   %d\n\n# internal — overridable via env vars\napi_base_url:    %s\ncognito_domain:  %s\norigin:          %s\nuser_client_id:  %s\nscopes:          %s\n",
+			"callback_port:   %d\ntls_pinning:     %s\n\n# internal — overridable via env vars\napi_base_url:    %s\ncognito_domain:  %s\norigin:          %s\nuser_client_id:  %s\nscopes:          %s\n",
 			cfg.CallbackPort,
+			pinning,
 			cfg.APIBaseURL, cfg.CognitoDomain, cfg.Origin, cfg.UserClientID, cfg.Scopes,
 		)
 		return nil

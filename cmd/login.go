@@ -3,9 +3,11 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/hexsign/hexsign-cli/internal/auth"
+	"github.com/hexsign/hexsign-cli/internal/config"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 )
@@ -29,12 +31,20 @@ var loginCmd = &cobra.Command{
 		fmt.Fprintln(cmd.OutOrStdout(), "Opening browser to sign in to HexSign…")
 		ctx, cancel := newOpCtx(cmd, 5*time.Minute)
 		defer cancel()
+		// If the user pinned a port via env / config, only try that port.
+		// Otherwise try the registered fallbacks so a busy port doesn't block
+		// login on a shared machine.
+		fallbacks := config.CallbackPortFallbacks
+		if os.Getenv("HEXSIGN_CLI_CALLBACK_PORT") != "" {
+			fallbacks = nil
+		}
 		res, err := auth.AuthorizationCodeFlow(ctx, auth.AuthCodeOptions{
-			CognitoDomain: cfg.CognitoDomain,
-			ClientID:      cfg.UserClientID,
-			CallbackPort:  cfg.CallbackPort,
-			Scopes:        cfg.Scopes,
-			OpenBrowser:   browser.OpenURL,
+			CognitoDomain:         cfg.CognitoDomain,
+			ClientID:              cfg.UserClientID,
+			CallbackPort:          cfg.CallbackPort,
+			CallbackPortFallbacks: fallbacks,
+			Scopes:                cfg.Scopes,
+			OpenBrowser:           browser.OpenURL,
 			Logf: func(format string, args ...any) {
 				fmt.Fprintf(cmd.OutOrStderr(), format+"\n", args...)
 			},

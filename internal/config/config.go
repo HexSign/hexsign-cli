@@ -19,6 +19,8 @@ const (
 	keyringRefresh = "refresh_token"
 )
 
+var CallbackPortFallbacks = []int{53682, 53683, 53684, 53685, 53686}
+
 var DefaultUserClientID = ""
 
 type Config struct {

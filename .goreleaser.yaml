@@ -21,6 +21,7 @@ builds:
       - -s -w
       - -X main.version={{.Version}}
       - -X github.com/hexsign/hexsign-cli/internal/config.DefaultUserClientID={{.Env.HEXSIGN_CLI_CLIENT_ID}}
+      - -X github.com/hexsign/hexsign-cli/internal/httpx.PinnedSPKIs={{.Env.HEXSIGN_CLI_TLS_PINS}}
 
 archives:
   - id: default
@@ -36,6 +37,32 @@ archives:
 
 checksum:
   name_template: checksums.txt
+
+signs:
+  - id: cosign-archives
+    cmd: cosign
+    artifacts: archive
+    signature: "${artifact}.sig"
+    certificate: "${artifact}.pem"
+    args:
+      - "sign-blob"
+      - "--yes"
+      - "--output-signature=${signature}"
+      - "--output-certificate=${certificate}"
+      - "${artifact}"
+    output: true
+  - id: cosign-checksum
+    cmd: cosign
+    artifacts: checksum
+    signature: "${artifact}.sig"
+    certificate: "${artifact}.pem"
+    args:
+      - "sign-blob"
+      - "--yes"
+      - "--output-signature=${signature}"
+      - "--output-certificate=${certificate}"
+      - "${artifact}"
+    output: true
 
 homebrew_casks:
   - name: hexsign

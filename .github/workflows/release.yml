@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   goreleaser:
@@ -23,6 +24,9 @@ jobs:
           go-version: "1.25"
           cache: true
 
+      - name: Install cosign
+        uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
         with:
@@ -32,3 +36,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
           HEXSIGN_CLI_CLIENT_ID: ${{ secrets.HEXSIGN_CLI_CLIENT_ID }}
+          HEXSIGN_CLI_TLS_PINS: ${{ secrets.HEXSIGN_CLI_TLS_PINS }}

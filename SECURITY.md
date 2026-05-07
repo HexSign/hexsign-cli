@@ -53,6 +53,32 @@ Out of scope (please report through the appropriate channel):
 Only the latest minor release receives security fixes. Older releases
 will not be back-ported.
 
+## Verifying release artifacts
+
+Every release archive and the `checksums.txt` file are signed with
+[cosign](https://docs.sigstore.dev/) keyless signing. The signature
+(`*.sig`) and the short-lived signing certificate (`*.pem`) are uploaded
+alongside each artifact, and a transparency log entry is published to
+[Rekor](https://rekor.sigstore.dev/).
+
+To verify a download:
+
+```sh
+VER=v1.2.3                                # the release tag
+ART=hexsign_${VER#v}_darwin_arm64.tar.gz  # or whichever artifact
+
+cosign verify-blob \
+  --certificate "${ART}.pem" \
+  --signature   "${ART}.sig" \
+  --certificate-identity-regexp 'https://github.com/hexsign/hexsign-cli/.+' \
+  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+  "${ART}"
+```
+
+The same command works for `checksums.txt`. If the verification succeeds
+you have proof that this exact file was produced by our release workflow
+running on the tagged commit.
+
 ## Hardening reminders for users
 
 - Treat `.p12` / `.password` files as secrets — they're written `0600`

@@ -9,10 +9,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/hexsign/hexsign-cli/internal/httpx"
 )
 
 type tokenResp struct {
@@ -46,6 +49,31 @@ func newPKCE() (verifier, challenge string, err error) {
 	return verifier, challenge, nil
 }
 
+func bindLoopback(preferred int, fallbacks []int) (net.Listener, int, error) {
+	candidates := make([]int, 0, 1+len(fallbacks))
+	if preferred > 0 {
+		candidates = append(candidates, preferred)
+	}
+	for _, p := range fallbacks {
+		if p == preferred {
+			continue
+		}
+		candidates = append(candidates, p)
+	}
+	if len(candidates) == 0 {
+		return nil, 0, errors.New("no callback ports configured")
+	}
+	var lastErr error
+	for _, port := range candidates {
+		ln, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+		if err == nil {
+			return ln, port, nil
+		}
+		lastErr = err
+	}
+	return nil, 0, fmt.Errorf("no loopback port available (tried %v): %w", candidates, lastErr)
+}
+
 func newState() (string, error) {
 	buf := make([]byte, 24)
 	if _, err := rand.Read(buf); err != nil {
@@ -57,10 +85,11 @@ func newState() (string, error) {
 type AuthCodeOptions struct {
 	CognitoDomain string
 	ClientID      string
-	CallbackPort  int
-	Scopes        string // space separated
-	OpenBrowser   func(url string) error
-	Logf          func(format string, args ...any)
+	CallbackPort int
+	CallbackPortFallbacks []int
+	Scopes                string // space separated
+	OpenBrowser           func(url string) error
+	Logf                  func(format string, args ...any)
 }
 
 type AuthCodeResult struct {
@@ -93,7 +122,11 @@ func AuthorizationCodeFlow(ctx context.Context, opts AuthCodeOptions) (*AuthCode
 		return nil, err
 	}
 
-	redirectURI := fmt.Sprintf("http://localhost:%d/callback", opts.CallbackPort)
+	listener, boundPort, err := bindLoopback(opts.CallbackPort, opts.CallbackPortFallbacks)
+	if err != nil {
+		return nil, err
+	}
+	redirectURI := fmt.Sprintf("http://localhost:%d/callback", boundPort)
 
 	authURL := strings.TrimRight(opts.CognitoDomain, "/") + "/oauth2/authorize?" + url.Values{
 		"response_type":         {"code"},
@@ -132,12 +165,11 @@ func AuthorizationCodeFlow(ctx context.Context, opts AuthCodeOptions) (*AuthCode
 	})
 
 	srv := &http.Server{
-		Addr:              fmt.Sprintf("localhost:%d", opts.CallbackPort),
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := srv.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errCh <- fmt.Errorf("local callback server: %w", err)
 		}
 	}()
@@ -214,7 +246,7 @@ func postToken(ctx context.Context, cognitoDomain string, form url.Values, basic
 		req.Header.Set("Authorization", "Basic "+basicAuth)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpx.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

@@ -13,6 +13,7 @@ import (
 
 	"github.com/hexsign/hexsign-cli/internal/auth"
 	"github.com/hexsign/hexsign-cli/internal/config"
+	"github.com/hexsign/hexsign-cli/internal/httpx"
 )
 
 type Client struct {
@@ -24,7 +25,7 @@ type Client struct {
 
 func New(cfg *config.Config, provider auth.Provider, userAgent string) *Client {
 	return &Client{
-		http:     &http.Client{Timeout: 60 * time.Second},
+		http:     httpx.Client(60 * time.Second),
 		cfg:      cfg,
 		provider: provider,
 		ua:       userAgent,
