@@ -31,6 +31,7 @@ var rootCmd = &cobra.Command{
 func Execute() error {
 	rootCmd.Version = Version
 	rootCmd.SetVersionTemplate("hexsign {{.Version}}\n")
+	auth.UserAgent = "hexsign-cli/" + Version
 	return rootCmd.ExecuteContext(context.Background())
 }
 

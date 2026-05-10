@@ -18,6 +18,8 @@ import (
 	"github.com/hexsign/hexsign-cli/internal/httpx"
 )
 
+var UserAgent = "hexsign-cli"
+
 type tokenResp struct {
 	IDToken      string `json:"id_token"`
 	AccessToken  string `json:"access_token"`
@@ -242,6 +244,7 @@ func postToken(ctx context.Context, cognitoDomain string, form url.Values, basic
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("User-Agent", UserAgent)
 	if basicAuth != "" {
 		req.Header.Set("Authorization", "Basic "+basicAuth)
 	}
