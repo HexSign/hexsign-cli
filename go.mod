@@ -2,6 +2,8 @@ module github.com/hexsign/hexsign-cli
 
 go 1.25.2
 
+toolchain go1.25.10
+
 require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/olekukonko/tablewriter v1.1.4
@@ -26,5 +28,5 @@ require (
 	github.com/olekukonko/errors v1.3.0 // indirect
 	github.com/olekukonko/ll v0.1.8 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
-	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
 )

@@ -143,27 +143,6 @@ type DeviceCreateRequest struct {
 	Platform       string `json:"platform"`
 }
 
-type CSR struct {
-	ID             string    `json:"id"`
-	AppleAccountID string    `json:"apple_account_id"`
-	Name           string    `json:"name"`
-	Content        string    `json:"content"`
-	KeyAlgorithm   string    `json:"key_algorithm,omitempty"`
-	HasPrivateKey  bool      `json:"has_private_key"`
-	CreatedAt      time.Time `json:"created_at"`
-}
-
-type CSRGenerateRequest struct {
-	AppleAccountID string `json:"apple_account_id"`
-	Name           string `json:"name"`
-}
-
-type CSRUploadRequest struct {
-	AppleAccountID string `json:"apple_account_id"`
-	Name           string `json:"name"`
-	Content        string `json:"content"`
-}
-
 type DashboardSummary struct {
 	Certificates struct {
 		Total        int `json:"total"`

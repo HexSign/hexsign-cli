@@ -17,6 +17,7 @@ var identifiersCmd = &cobra.Command{
 
 var (
 	identListPF        pageFlags
+	identListBundle    string
 	identCreateAccount string
 	identCreateBundle  string
 	identCreateName    string
@@ -38,8 +39,12 @@ var identListCmd = &cobra.Command{
 		}
 		ctx, cancel := newOpCtx(cmd, 30*time.Second)
 		defer cancel()
+		q := identListPF.values()
+		if identListBundle != "" {
+			q.Set("bundle_id", identListBundle)
+		}
 		var resp api.PaginatedResponse[api.Identifier]
-		if err := client.Do(ctx, "GET", "/identifiers", identListPF.values(), nil, &resp); err != nil {
+		if err := client.Do(ctx, "GET", "/identifiers", q, nil, &resp); err != nil {
 			return err
 		}
 		f, err := parseOutput()
@@ -135,6 +140,7 @@ var identDeleteCmd = &cobra.Command{
 
 func init() {
 	identListPF.bind(identListCmd)
+	identListCmd.Flags().StringVar(&identListBundle, "bundle-id", "", "filter by bundle identifier (exact match)")
 	identCreateCmd.Flags().StringVar(&identCreateAccount, "apple-account-id", "", "Apple account ID (required)")
 	identCreateCmd.Flags().StringVar(&identCreateBundle, "bundle-id", "", "bundle identifier, e.g. com.example.app (required)")
 	identCreateCmd.Flags().StringVar(&identCreateName, "name", "", "human-readable name (required)")
