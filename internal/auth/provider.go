@@ -69,8 +69,8 @@ func (p *userProvider) Token(ctx context.Context) (string, error) {
 		p.loaded = true
 	}
 
-	if p.cache != nil && p.cache.IDToken != "" && time.Until(p.cache.ExpiresAt) > 30*time.Second {
-		return p.cache.IDToken, nil
+	if p.cache != nil && p.cache.AccessToken != "" && time.Until(p.cache.ExpiresAt) > 30*time.Second {
+		return p.cache.AccessToken, nil
 	}
 
 	refresh, err := LoadRefreshToken()
@@ -90,7 +90,7 @@ func (p *userProvider) Token(ctx context.Context) (string, error) {
 	}
 	exp := time.Now().Add(time.Duration(tr.ExpiresIn) * time.Second)
 	if tr.ExpiresIn == 0 {
-		exp = decodeJWTExpiry(tr.IDToken)
+		exp = decodeJWTExpiry(tr.AccessToken)
 	}
 	p.cache = &CachedTokens{
 		IDToken:     tr.IDToken,
@@ -102,7 +102,7 @@ func (p *userProvider) Token(ctx context.Context) (string, error) {
 	if err := SaveCached(p.cache); err != nil {
 		return "", err
 	}
-	return p.cache.IDToken, nil
+	return p.cache.AccessToken, nil
 }
 
 type machineProvider struct {

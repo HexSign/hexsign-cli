@@ -13,7 +13,7 @@ const (
 	DefaultCognitoDomain = "https://identity.hexsign.net"
 	DefaultOrigin        = "https://dashboard.hexsign.net"
 	DefaultCallbackPort  = 53682
-	DefaultScopes        = "openid email profile"
+	DefaultScopes        = "openid email profile hexsign-api/read hexsign-api/write"
 
 	keyringService = "hexsign-cli"
 	keyringRefresh = "refresh_token"
