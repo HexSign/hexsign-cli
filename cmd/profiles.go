@@ -15,6 +15,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const profileTypes = "IOS_APP_DEVELOPMENT, IOS_APP_STORE, IOS_APP_ADHOC, IOS_APP_INHOUSE, " +
+	"MAC_APP_DEVELOPMENT, MAC_APP_STORE, MAC_APP_DIRECT, " +
+	"TVOS_APP_DEVELOPMENT, TVOS_APP_STORE, TVOS_APP_ADHOC, TVOS_APP_INHOUSE, " +
+	"MAC_CATALYST_APP_DEVELOPMENT, MAC_CATALYST_APP_STORE, MAC_CATALYST_APP_DIRECT"
+
 var profilesCmd = &cobra.Command{
 	Use:     "profiles",
 	Aliases: []string{"profile"},
@@ -26,14 +31,17 @@ var (
 	profileListType       string
 	profileListStatus     string
 	profileListBundle     string
+	profileListTeam       string
 	profileDownloadDir    string
 	profileDownloadName   string
 	profileDownloadBundle string
+	profileDownloadTeam   string
 )
 
 var profileListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List provisioning profiles",
+	Long:  "List provisioning profiles.\n\nValid --type values: " + profileTypes + ".\nValid --status values: active, invalid, expired, expiring_soon.",
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		cfg, err := loadCfg()
 		if err != nil {
@@ -55,6 +63,9 @@ var profileListCmd = &cobra.Command{
 		}
 		if profileListBundle != "" {
 			q.Set("bundle_id", profileListBundle)
+		}
+		if profileListTeam != "" {
+			q.Set("team_id", profileListTeam)
 		}
 
 		var resp api.PaginatedResponse[api.Profile]
@@ -102,7 +113,7 @@ var profileGetCmd = &cobra.Command{
 
 var profileDownloadCmd = &cobra.Command{
 	Use:   "download [id]",
-	Short: "Download .mobileprovision files (by id or --bundle-id)",
+	Short: "Download .mobileprovision files (by id, or by --bundle-id [+ --team-id])",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if (len(args) == 0) == (profileDownloadBundle == "") {
@@ -110,6 +121,9 @@ var profileDownloadCmd = &cobra.Command{
 		}
 		if profileDownloadBundle != "" && profileDownloadName != "" {
 			return fmt.Errorf("--filename cannot be used with --bundle-id")
+		}
+		if profileDownloadBundle == "" && profileDownloadTeam != "" {
+			return fmt.Errorf("--team-id requires --bundle-id")
 		}
 
 		cfg, err := loadCfg()
@@ -142,11 +156,14 @@ var profileDownloadCmd = &cobra.Command{
 
 		listCtx, listCancel := newOpCtx(cmd, 60*time.Second)
 		defer listCancel()
-		ids, err := collectProfileIDsByBundle(listCtx, client, profileDownloadBundle)
+		ids, err := collectProfileIDsByBundle(listCtx, client, profileDownloadBundle, profileDownloadTeam)
 		if err != nil {
 			return err
 		}
 		if len(ids) == 0 {
+			if profileDownloadTeam != "" {
+				return fmt.Errorf("no profiles found for bundle id %q and team id %q", profileDownloadBundle, profileDownloadTeam)
+			}
 			return fmt.Errorf("no profiles found for bundle id %q", profileDownloadBundle)
 		}
 		for _, id := range ids {
@@ -185,12 +202,15 @@ func downloadProfile(ctx context.Context, client *api.Client, id, dir, filename 
 	return path, nil
 }
 
-func collectProfileIDsByBundle(ctx context.Context, client *api.Client, bundleID string) ([]string, error) {
+func collectProfileIDsByBundle(ctx context.Context, client *api.Client, bundleID, teamID string) ([]string, error) {
 	const pageSize = 100
 	var ids []string
 	for page := 1; ; page++ {
 		q := url.Values{}
 		q.Set("bundle_id", bundleID)
+		if teamID != "" {
+			q.Set("team_id", teamID)
+		}
 		q.Set("page", strconv.Itoa(page))
 		q.Set("limit", strconv.Itoa(pageSize))
 		var resp api.PaginatedResponse[api.Profile]
@@ -287,13 +307,15 @@ var profileExpiringCmd = &cobra.Command{
 
 func init() {
 	profileListPF.bind(profileListCmd)
-	profileListCmd.Flags().StringVar(&profileListType, "type", "", "filter by profile type (e.g. IOS_APP_STORE)")
+	profileListCmd.Flags().StringVar(&profileListType, "type", "", "filter by profile type (see --help for accepted values)")
 	profileListCmd.Flags().StringVar(&profileListStatus, "status", "", "filter by status: active|invalid|expired|expiring_soon")
 	profileListCmd.Flags().StringVar(&profileListBundle, "bundle-id", "", "filter by bundle identifier (exact match)")
+	profileListCmd.Flags().StringVar(&profileListTeam, "team-id", "", "filter by Apple Developer team id")
 
 	profileDownloadCmd.Flags().StringVar(&profileDownloadDir, "output-dir", ".", "directory to write the .mobileprovision file(s) into")
 	profileDownloadCmd.Flags().StringVar(&profileDownloadName, "filename", "", "override the filename (single download only)")
 	profileDownloadCmd.Flags().StringVar(&profileDownloadBundle, "bundle-id", "", "download every profile for this bundle id")
+	profileDownloadCmd.Flags().StringVar(&profileDownloadTeam, "team-id", "", "scope --bundle-id to this Apple Developer team (avoids cross-account collisions)")
 
 	profilesCmd.AddCommand(profileListCmd, profileGetCmd, profileDownloadCmd, profileRegenerateCmd, profileDeleteCmd, profileExpiringCmd)
 	rootCmd.AddCommand(profilesCmd)

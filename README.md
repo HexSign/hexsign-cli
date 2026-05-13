@@ -100,29 +100,55 @@ They are intentionally not in `hexsign config set`.
 hexsign login | logout | whoami
 hexsign config (show | set <key> <value>)
 
-hexsign apple-accounts (list | sync <id> | delete <id>)
+hexsign apple-accounts list
+hexsign apple-accounts sync   <id|team_id>
+hexsign apple-accounts delete <id|team_id>
 
-hexsign certificates list [--type <t>] [--status <s>] [--page N --limit N]
+hexsign certificates list [--type <t>] [--status <s>] [--team-id <id>] [--page N --limit N]
 hexsign certificates get <id>
 hexsign certificates download <id> [--output-dir DIR] [--filename NAME]
+hexsign certificates download --type <t> --team-id <id> [--output-dir DIR]
 hexsign certificates revoke <id>
 hexsign certificates expiring
 
-hexsign profiles list [--type <t>] [--status <s>] [--page N --limit N]
+hexsign profiles list [--type <t>] [--status <s>] [--bundle-id <id>] [--team-id <id>] [--page N --limit N]
 hexsign profiles get <id>
 hexsign profiles download <id> [--output-dir DIR] [--filename NAME]
+hexsign profiles download --bundle-id <id> [--team-id <id>] [--output-dir DIR]
 hexsign profiles regenerate <id>
 hexsign profiles delete <id>
 hexsign profiles expiring
 
-hexsign identifiers (list | get <id> | create … | delete <id>)
-hexsign devices     (list | get <id> | create …)
-hexsign csrs        (list | generate … | upload --file … | delete <id>)
+hexsign identifiers list [--bundle-id <id>] [--team-id <id>] [--page N --limit N]
+hexsign identifiers get    <id>
+hexsign identifiers create --apple-account-id <id> --bundle-id <id> --name <name> [--platform IOS|MAC_OS] [--type APP_IDS]
+hexsign identifiers delete <id>
+
+hexsign devices list [--device-class <c>] [--status <s>] [--team-id <id>] [--page N --limit N]
+hexsign devices get    <id>
+hexsign devices create --apple-account-id <id> --name <name> --udid <udid> [--platform IOS|MAC_OS]
 
 hexsign summary
 ```
 
 All commands accept `-o table|json` (default `table`).
+
+### Bulk downloads
+
+Both `certificates download` and `profiles download` accept a filter
+instead of a single ID for fetching every matching artefact in one go:
+
+- `hexsign certs download --type IOS_DISTRIBUTION --team-id ABCDE12345` —
+  downloads every distribution certificate for the given Apple Developer team
+  as `.p12` + `.password` pairs. `--team-id` is required so you don't
+  accidentally pull certs across multiple linked Apple accounts.
+- `hexsign profiles download --bundle-id com.example.app [--team-id ABCDE12345]`
+  — downloads every `.mobileprovision` linked to that bundle identifier.
+  Pass `--team-id` when the same bundle id exists in more than one linked
+  Apple account.
+
+Run `hexsign certs list --help` or `hexsign profiles list --help` for the
+full list of accepted `--type` values.
 
 ## CI example: fetch signing material before xcodebuild
 

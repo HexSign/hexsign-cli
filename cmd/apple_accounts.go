@@ -42,7 +42,7 @@ var appleAccountsListCmd = &cobra.Command{
 			return err
 		}
 		return output.Print(f, resp, func() error {
-			t := output.NewTable(cmd.OutOrStdout(), "ID", "NAME", "TEAM", "ISSUER", "SYNC", "LAST SYNC")
+			t := output.NewTable(cmd.OutOrStdout(), "ID", "NAME", "TEAM ID", "ISSUER", "SYNC", "LAST SYNC")
 			for _, a := range resp.Data {
 				team := ""
 				if a.TeamID != nil {
@@ -61,8 +61,8 @@ var appleAccountsListCmd = &cobra.Command{
 }
 
 var appleAccountsSyncCmd = &cobra.Command{
-	Use:   "sync <id>",
-	Short: "Trigger a sync of an Apple account",
+	Use:   "sync <id|team_id>",
+	Short: "Trigger a sync of an Apple account (by UUID or Apple team id)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := loadCfg()
@@ -84,8 +84,8 @@ var appleAccountsSyncCmd = &cobra.Command{
 }
 
 var appleAccountsDeleteCmd = &cobra.Command{
-	Use:   "delete <id>",
-	Short: "Remove an Apple account link",
+	Use:   "delete <id|team_id>",
+	Short: "Remove an Apple account link (by UUID or Apple team id)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := loadCfg()

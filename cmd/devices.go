@@ -16,6 +16,9 @@ var devicesCmd = &cobra.Command{
 
 var (
 	devListPF       pageFlags
+	devListClass    string
+	devListStatus   string
+	devListTeam     string
 	devCreateAcc    string
 	devCreateName   string
 	devCreateUDID   string
@@ -36,8 +39,18 @@ var devListCmd = &cobra.Command{
 		}
 		ctx, cancel := newOpCtx(cmd, 30*time.Second)
 		defer cancel()
+		q := devListPF.values()
+		if devListClass != "" {
+			q.Set("device_class", devListClass)
+		}
+		if devListStatus != "" {
+			q.Set("status", devListStatus)
+		}
+		if devListTeam != "" {
+			q.Set("team_id", devListTeam)
+		}
 		var resp api.PaginatedResponse[api.Device]
-		if err := client.Do(ctx, "GET", "/devices", devListPF.values(), nil, &resp); err != nil {
+		if err := client.Do(ctx, "GET", "/devices", q, nil, &resp); err != nil {
 			return err
 		}
 		f, err := parseOutput()
@@ -108,6 +121,9 @@ var devCreateCmd = &cobra.Command{
 
 func init() {
 	devListPF.bind(devListCmd)
+	devListCmd.Flags().StringVar(&devListClass, "device-class", "", "filter by device class (e.g. IPHONE, IPAD, MAC)")
+	devListCmd.Flags().StringVar(&devListStatus, "status", "", "filter by status: enabled|disabled")
+	devListCmd.Flags().StringVar(&devListTeam, "team-id", "", "filter by Apple Developer team id")
 	devCreateCmd.Flags().StringVar(&devCreateAcc, "apple-account-id", "", "Apple account ID (required)")
 	devCreateCmd.Flags().StringVar(&devCreateName, "name", "", "device name (required)")
 	devCreateCmd.Flags().StringVar(&devCreateUDID, "udid", "", "device UDID (required)")

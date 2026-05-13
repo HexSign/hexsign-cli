@@ -34,7 +34,6 @@ type AppleAccountCreateRequest struct {
 	IssuerID   string `json:"issuer_id"`
 	KeyID      string `json:"key_id"`
 	PrivateKey string `json:"private_key"`
-	TeamID     string `json:"team_id,omitempty"`
 }
 
 type Certificate struct {
