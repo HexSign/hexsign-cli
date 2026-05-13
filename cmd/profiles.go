@@ -116,14 +116,8 @@ var profileDownloadCmd = &cobra.Command{
 	Short: "Download .mobileprovision files (by id, or by --bundle-id [+ --team-id])",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if (len(args) == 0) == (profileDownloadBundle == "") {
-			return fmt.Errorf("provide exactly one of <id> or --bundle-id")
-		}
-		if profileDownloadBundle != "" && profileDownloadName != "" {
-			return fmt.Errorf("--filename cannot be used with --bundle-id")
-		}
-		if profileDownloadBundle == "" && profileDownloadTeam != "" {
-			return fmt.Errorf("--team-id requires --bundle-id")
+		if err := validateProfileDownloadArgs(args, profileDownloadBundle, profileDownloadTeam, profileDownloadName); err != nil {
+			return err
 		}
 
 		cfg, err := loadCfg()
@@ -177,6 +171,22 @@ var profileDownloadCmd = &cobra.Command{
 		}
 		return nil
 	},
+}
+
+// validateProfileDownloadArgs enforces the mutually exclusive flag combinations
+// for `profiles download`. Extracted from the RunE closure so the rules can be
+// unit-tested without spinning up cobra or auth.
+func validateProfileDownloadArgs(args []string, bundleID, teamID, filename string) error {
+	if (len(args) == 0) == (bundleID == "") {
+		return fmt.Errorf("provide exactly one of <id> or --bundle-id")
+	}
+	if bundleID != "" && filename != "" {
+		return fmt.Errorf("--filename cannot be used with --bundle-id")
+	}
+	if bundleID == "" && teamID != "" {
+		return fmt.Errorf("--team-id requires --bundle-id")
+	}
+	return nil
 }
 
 func downloadProfile(ctx context.Context, client *api.Client, id, dir, filename string) (string, error) {

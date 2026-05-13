@@ -120,19 +120,10 @@ var certDownloadCmd = &cobra.Command{
 		"Valid --type values: " + certTypes + ".",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		bulk := certDownloadType != "" || certDownloadTeam != ""
-		if bulk && len(args) == 1 {
-			return fmt.Errorf("--type/--team-id cannot be combined with <id>")
+		if err := validateCertDownloadArgs(args, certDownloadType, certDownloadTeam, certDownloadName); err != nil {
+			return err
 		}
-		if bulk && (certDownloadType == "" || certDownloadTeam == "") {
-			return fmt.Errorf("--type and --team-id must be provided together")
-		}
-		if !bulk && len(args) != 1 {
-			return fmt.Errorf("provide either <id> or both --type and --team-id")
-		}
-		if bulk && certDownloadName != "" {
-			return fmt.Errorf("--filename cannot be used with --type/--team-id")
-		}
+		bulk := certDownloadType != ""
 
 		cfg, err := loadCfg()
 		if err != nil {
@@ -184,6 +175,26 @@ var certDownloadCmd = &cobra.Command{
 		}
 		return nil
 	},
+}
+
+// validateCertDownloadArgs enforces the mutually exclusive flag combinations
+// for `certificates download`. Extracted from the RunE closure so the rules
+// can be unit-tested without spinning up cobra or auth.
+func validateCertDownloadArgs(args []string, certType, teamID, filename string) error {
+	bulk := certType != "" || teamID != ""
+	if bulk && len(args) == 1 {
+		return fmt.Errorf("--type/--team-id cannot be combined with <id>")
+	}
+	if bulk && (certType == "" || teamID == "") {
+		return fmt.Errorf("--type and --team-id must be provided together")
+	}
+	if !bulk && len(args) != 1 {
+		return fmt.Errorf("provide either <id> or both --type and --team-id")
+	}
+	if bulk && filename != "" {
+		return fmt.Errorf("--filename cannot be used with --type/--team-id")
+	}
+	return nil
 }
 
 func downloadCertP12(ctx context.Context, client *api.Client, id, dir, filename string) (string, string, error) {
