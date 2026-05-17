@@ -60,29 +60,6 @@ var appleAccountsListCmd = &cobra.Command{
 	},
 }
 
-var appleAccountsSyncCmd = &cobra.Command{
-	Use:   "sync <id|team_id>",
-	Short: "Trigger a sync of an Apple account (by UUID or Apple team id)",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := loadCfg()
-		if err != nil {
-			return err
-		}
-		client, _, err := newClient(cfg)
-		if err != nil {
-			return err
-		}
-		ctx, cancel := newOpCtx(cmd, 60*time.Second)
-		defer cancel()
-		if err := client.Do(ctx, "POST", "/apple-accounts/"+args[0]+"/sync", nil, nil, nil); err != nil {
-			return err
-		}
-		fmt.Fprintf(cmd.OutOrStdout(), "Sync triggered for %s\n", args[0])
-		return nil
-	},
-}
-
 var appleAccountsDeleteCmd = &cobra.Command{
 	Use:   "delete <id|team_id>",
 	Short: "Remove an Apple account link (by UUID or Apple team id)",
@@ -108,6 +85,6 @@ var appleAccountsDeleteCmd = &cobra.Command{
 
 func init() {
 	appleAccountsListPF.bind(appleAccountsListCmd)
-	appleAccountsCmd.AddCommand(appleAccountsListCmd, appleAccountsSyncCmd, appleAccountsDeleteCmd)
+	appleAccountsCmd.AddCommand(appleAccountsListCmd, appleAccountsDeleteCmd)
 	rootCmd.AddCommand(appleAccountsCmd)
 }

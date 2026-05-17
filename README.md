@@ -101,7 +101,6 @@ hexsign login | logout | whoami
 hexsign config (show | set <key> <value>)
 
 hexsign apple-accounts list
-hexsign apple-accounts sync   <id|team_id>
 hexsign apple-accounts delete <id|team_id>
 
 hexsign certificates list [--type <t>] [--status <s>] [--team-id <id>] [--page N --limit N]
