@@ -105,8 +105,8 @@ hexsign apple-accounts delete <id|team_id>
 
 hexsign certificates list [--type <t>] [--status <s>] [--team-id <id>] [--page N --limit N]
 hexsign certificates get <id>
-hexsign certificates download <id> [--output-dir DIR] [--filename NAME]
-hexsign certificates download --type <t> --team-id <id> [--output-dir DIR]
+hexsign certificates download <id> [--output-dir DIR] [--filename NAME] [--keychain PATH]
+hexsign certificates download --type <t> --team-id <id> [--output-dir DIR] [--keychain PATH]
 hexsign certificates revoke <id>
 hexsign certificates expiring
 
@@ -149,6 +149,15 @@ instead of a single ID for fetching every matching artefact in one go:
 Run `hexsign certs list --help` or `hexsign profiles list --help` for the
 full list of accepted `--type` values.
 
+### Import straight into a keychain (macOS)
+
+`certificates download` accepts `--keychain PATH` to skip the manual
+`security create-keychain` / `import` / `set-key-partition-list` dance. It
+creates a fresh keychain at `PATH`, imports every downloaded `.p12`, and
+configures it so `codesign` can use the private keys without an interactive
+prompt. The keychain is ready to sign with immediately. The flag fails fast
+on non-macOS platforms, and refuses to overwrite an existing keychain file.
+
 ## CI example: fetch signing material before xcodebuild
 
 ```yaml
@@ -160,9 +169,10 @@ full list of accepted `--type` values.
     PROFILE_ID:            ${{ vars.HEXSIGN_PROFILE_ID }}
     CERT_ID:               ${{ vars.HEXSIGN_CERT_ID }}
   run: |
-    hexsign certificates download "$CERT_ID" --output-dir build/sign
-    hexsign profiles     download "$PROFILE_ID" --output-dir build/sign
-    # then security import / xcrun fastlane / xcodebuild as usual
+    hexsign certificates download "$CERT_ID" --output-dir build/sign \
+      --keychain "$RUNNER_TEMP/signing.keychain-db"
+    hexsign profiles download "$PROFILE_ID" --output-dir build/sign
+    # the keychain is ready — go straight to xcodebuild / codesign
 ```
 
 ## Development

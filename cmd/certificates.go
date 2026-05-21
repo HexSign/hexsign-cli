@@ -7,10 +7,12 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"time"
 
 	"github.com/hexsign/hexsign-cli/internal/api"
+	"github.com/hexsign/hexsign-cli/internal/keychain"
 	"github.com/hexsign/hexsign-cli/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -32,10 +34,11 @@ var (
 	certListType     string
 	certListStatus   string
 	certListTeam     string
-	certDownloadDir  string
-	certDownloadName string
-	certDownloadType string
-	certDownloadTeam string
+	certDownloadDir      string
+	certDownloadName     string
+	certDownloadType     string
+	certDownloadTeam     string
+	certDownloadKeychain string
 )
 
 var certListCmd = &cobra.Command{
@@ -117,11 +120,15 @@ var certDownloadCmd = &cobra.Command{
 	Use:   "download [id]",
 	Short: "Download P12 bundles (by id, or by --type + --team-id)",
 	Long: "Downloads the certificate as a PKCS#12 bundle along with the random password used to encrypt it. Writes <name>.p12 and <name>.password into the chosen directory (current dir by default). With --type and --team-id, downloads every matching certificate for that Apple Developer team.\n\n" +
+		"With --keychain (macOS only), the downloaded certificate is also imported into a freshly created keychain at the given path, configured so codesign can use it without an interactive prompt.\n\n" +
 		"Valid --type values: " + certTypes + ".",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateCertDownloadArgs(args, certDownloadType, certDownloadTeam, certDownloadName); err != nil {
 			return err
+		}
+		if certDownloadKeychain != "" && !keychain.Supported {
+			return fmt.Errorf("--keychain is only supported on macOS (running on %s)", runtime.GOOS)
 		}
 		bulk := certDownloadType != ""
 
@@ -142,16 +149,19 @@ var certDownloadCmd = &cobra.Command{
 			return err
 		}
 
+		var imports []keychain.P12
+
 		if !bulk {
 			ctx, cancel := newOpCtx(cmd, 60*time.Second)
 			defer cancel()
-			p12Path, pwPath, err := downloadCertP12(ctx, client, args[0], dir, certDownloadName)
+			p12Path, pwPath, password, err := downloadCertP12(ctx, client, args[0], dir, certDownloadName)
 			if err != nil {
 				return err
 			}
 			fmt.Fprintln(cmd.OutOrStdout(), p12Path)
 			fmt.Fprintln(cmd.OutOrStdout(), pwPath)
-			return nil
+			imports = append(imports, keychain.P12{Path: p12Path, Password: password})
+			return importCertsToKeychain(cmd, certDownloadKeychain, imports)
 		}
 
 		listCtx, listCancel := newOpCtx(cmd, 60*time.Second)
@@ -165,16 +175,28 @@ var certDownloadCmd = &cobra.Command{
 		}
 		for _, id := range ids {
 			ctx, cancel := newOpCtx(cmd, 60*time.Second)
-			p12Path, pwPath, derr := downloadCertP12(ctx, client, id, dir, "")
+			p12Path, pwPath, password, derr := downloadCertP12(ctx, client, id, dir, "")
 			cancel()
 			if derr != nil {
 				return fmt.Errorf("download %s: %w", id, derr)
 			}
 			fmt.Fprintln(cmd.OutOrStdout(), p12Path)
 			fmt.Fprintln(cmd.OutOrStdout(), pwPath)
+			imports = append(imports, keychain.P12{Path: p12Path, Password: password})
 		}
-		return nil
+		return importCertsToKeychain(cmd, certDownloadKeychain, imports)
 	},
+}
+
+func importCertsToKeychain(cmd *cobra.Command, keychainPath string, items []keychain.P12) error {
+	if keychainPath == "" {
+		return nil
+	}
+	if err := keychain.Install(keychainPath, items); err != nil {
+		return err
+	}
+	fmt.Fprintf(cmd.OutOrStdout(), "imported %d certificate(s) into keychain %s\n", len(items), keychainPath)
+	return nil
 }
 
 // validateCertDownloadArgs enforces the mutually exclusive flag combinations
@@ -197,14 +219,14 @@ func validateCertDownloadArgs(args []string, certType, teamID, filename string) 
 	return nil
 }
 
-func downloadCertP12(ctx context.Context, client *api.Client, id, dir, filename string) (string, string, error) {
+func downloadCertP12(ctx context.Context, client *api.Client, id, dir, filename string) (p12Path, pwPath, password string, err error) {
 	var resp api.CertificateP12Response
 	if err := client.Do(ctx, "GET", "/certificates/"+id+"/p12", nil, nil, &resp); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	raw, err := base64.StdEncoding.DecodeString(resp.P12Base64)
 	if err != nil {
-		return "", "", fmt.Errorf("decode p12 payload: %w", err)
+		return "", "", "", fmt.Errorf("decode p12 payload: %w", err)
 	}
 	base := filename
 	if base == "" {
@@ -213,15 +235,15 @@ func downloadCertP12(ctx context.Context, client *api.Client, id, dir, filename 
 			base = id
 		}
 	}
-	p12Path := filepath.Join(dir, base+".p12")
-	pwPath := filepath.Join(dir, base+".password")
+	p12Path = filepath.Join(dir, base+".p12")
+	pwPath = filepath.Join(dir, base+".password")
 	if err := os.WriteFile(p12Path, raw, 0o600); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	if err := os.WriteFile(pwPath, []byte(resp.Password+"\n"), 0o600); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	return p12Path, pwPath, nil
+	return p12Path, pwPath, resp.Password, nil
 }
 
 func collectCertIDsByTypeAndTeam(ctx context.Context, client *api.Client, certType, teamID string) ([]string, error) {
@@ -325,6 +347,7 @@ func init() {
 	certDownloadCmd.Flags().StringVar(&certDownloadName, "filename", "", "override the basename for the .p12 / .password files (single download only)")
 	certDownloadCmd.Flags().StringVar(&certDownloadType, "type", "", "download every certificate of this type (requires --team-id; see --help for accepted values)")
 	certDownloadCmd.Flags().StringVar(&certDownloadTeam, "team-id", "", "Apple Developer team id to scope --type to")
+	certDownloadCmd.Flags().StringVar(&certDownloadKeychain, "keychain", "", "macOS only: create this keychain and import the downloaded .p12 into it, ready for codesigning")
 
 	certificatesCmd.AddCommand(certListCmd, certGetCmd, certDownloadCmd, certRevokeCmd, certExpiringCmd)
 	rootCmd.AddCommand(certificatesCmd)
