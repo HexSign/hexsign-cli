@@ -7,11 +7,13 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"time"
 
 	"github.com/hexsign/hexsign-cli/internal/api"
 	"github.com/hexsign/hexsign-cli/internal/output"
+	"github.com/hexsign/hexsign-cli/internal/provisioning"
 	"github.com/spf13/cobra"
 )
 
@@ -32,10 +34,11 @@ var (
 	profileListStatus     string
 	profileListBundle     string
 	profileListTeam       string
-	profileDownloadDir    string
-	profileDownloadName   string
-	profileDownloadBundle string
-	profileDownloadTeam   string
+	profileDownloadDir     string
+	profileDownloadName    string
+	profileDownloadBundle  string
+	profileDownloadTeam    string
+	profileDownloadInstall bool
 )
 
 var profileListCmd = &cobra.Command{
@@ -114,10 +117,15 @@ var profileGetCmd = &cobra.Command{
 var profileDownloadCmd = &cobra.Command{
 	Use:   "download [id]",
 	Short: "Download .mobileprovision files (by id, or by --bundle-id [+ --team-id])",
-	Args:  cobra.MaximumNArgs(1),
+	Long: "Downloads provisioning profiles as .mobileprovision files into the chosen directory (current dir by default). With --bundle-id (optionally + --team-id), downloads every profile for that bundle.\n\n" +
+		"With --install (macOS only), each downloaded profile is also copied into ~/Library/MobileDevice/Provisioning Profiles as <UUID>.mobileprovision, where Xcode discovers it — no manual steps needed. The install destination is printed as 'installed <name> -> <path>'.",
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateProfileDownloadArgs(args, profileDownloadBundle, profileDownloadTeam, profileDownloadName); err != nil {
 			return err
+		}
+		if profileDownloadInstall && !provisioning.Supported {
+			return fmt.Errorf("--install is only supported on macOS (running on %s)", runtime.GOOS)
 		}
 
 		cfg, err := loadCfg()
@@ -137,6 +145,8 @@ var profileDownloadCmd = &cobra.Command{
 			return err
 		}
 
+		var paths []string
+
 		if len(args) == 1 {
 			ctx, cancel := newOpCtx(cmd, 60*time.Second)
 			defer cancel()
@@ -145,7 +155,8 @@ var profileDownloadCmd = &cobra.Command{
 				return err
 			}
 			fmt.Fprintln(cmd.OutOrStdout(), path)
-			return nil
+			paths = append(paths, path)
+			return installProfiles(cmd, paths)
 		}
 
 		listCtx, listCancel := newOpCtx(cmd, 60*time.Second)
@@ -168,9 +179,24 @@ var profileDownloadCmd = &cobra.Command{
 				return fmt.Errorf("download %s: %w", id, derr)
 			}
 			fmt.Fprintln(cmd.OutOrStdout(), path)
+			paths = append(paths, path)
 		}
-		return nil
+		return installProfiles(cmd, paths)
 	},
+}
+
+func installProfiles(cmd *cobra.Command, paths []string) error {
+	if !profileDownloadInstall {
+		return nil
+	}
+	installed, err := provisioning.Install(paths)
+	if err != nil {
+		return err
+	}
+	for _, p := range installed {
+		fmt.Fprintf(cmd.OutOrStdout(), "installed %s -> %s\n", p.Name, p.DestPath)
+	}
+	return nil
 }
 
 // validateProfileDownloadArgs enforces the mutually exclusive flag combinations
@@ -326,6 +352,7 @@ func init() {
 	profileDownloadCmd.Flags().StringVar(&profileDownloadName, "filename", "", "override the filename (single download only)")
 	profileDownloadCmd.Flags().StringVar(&profileDownloadBundle, "bundle-id", "", "download every profile for this bundle id")
 	profileDownloadCmd.Flags().StringVar(&profileDownloadTeam, "team-id", "", "scope --bundle-id to this Apple Developer team (avoids cross-account collisions)")
+	profileDownloadCmd.Flags().BoolVar(&profileDownloadInstall, "install", false, "macOS only: also install each downloaded profile into ~/Library/MobileDevice/Provisioning Profiles, where Xcode finds it")
 
 	profilesCmd.AddCommand(profileListCmd, profileGetCmd, profileDownloadCmd, profileRegenerateCmd, profileDeleteCmd, profileExpiringCmd)
 	rootCmd.AddCommand(profilesCmd)
