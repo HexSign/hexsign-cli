@@ -16,7 +16,7 @@ inputs:
     required: false
     default: ""
   client-secret:
-    description: HexSign service-credential client secret. Pass via ${{ secrets.* }} — never hardcode.
+    description: HexSign service-credential client secret. Pass it from an encrypted secret — never hardcode.
     required: false
     default: ""
   scopes:

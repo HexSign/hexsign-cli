@@ -6,6 +6,9 @@ dist/
 .env.local
 hexsign
 
+# Xcode projects generated locally by examples/ci-test/run-local.sh
+examples/ci-test/*/*.xcodeproj/
+
 # `output` is a common name in some users' global gitignores; make sure
 # our internal/output package is never silently swallowed.
 !internal/output/

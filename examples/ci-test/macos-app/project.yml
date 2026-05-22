@@ -1,0 +1,31 @@
+name: HexSignTestMac
+options:
+  bundleIdPrefix: io.hexsign.citest
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+targets:
+  HexSignTestMac:
+    type: application
+    platform: macOS
+    sources:
+      - Sources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.hexsign.citest.mac
+        PRODUCT_NAME: HexSignTestMac
+        GENERATE_INFOPLIST_FILE: "YES"
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.0"
+        CODE_SIGN_STYLE: Manual
+        # The workflow builds unsigned, then codesigns by hand with the
+        # Developer ID identity fetched by the HexSign CLI.
+        CODE_SIGNING_ALLOWED: "NO"
+        INFOPLIST_KEY_CFBundleDisplayName: HexSign CI Test
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+schemes:
+  HexSignTestMac:
+    build:
+      targets:
+        HexSignTestMac: all

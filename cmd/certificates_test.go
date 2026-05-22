@@ -13,8 +13,8 @@ func TestValidateCertDownloadArgs(t *testing.T) {
 		teamID   string
 		filename string
 
-		wantErr        bool
-		wantErrSubstr  string
+		wantErr       bool
+		wantErrSubstr string
 	}{
 		{
 			name: "single id, no bulk flags",
@@ -23,7 +23,7 @@ func TestValidateCertDownloadArgs(t *testing.T) {
 		{
 			name:     "bulk: type + team-id",
 			args:     []string{},
-			certType: "IOS_DISTRIBUTION",
+			certType: "DISTRIBUTION",
 			teamID:   "ABCDE12345",
 		},
 		{
@@ -36,7 +36,7 @@ func TestValidateCertDownloadArgs(t *testing.T) {
 		{
 			name:     "only --type without --team-id",
 			args:     []string{},
-			certType: "IOS_DISTRIBUTION",
+			certType: "DISTRIBUTION",
 
 			wantErr:       true,
 			wantErrSubstr: "--type and --team-id must be provided together",
@@ -52,15 +52,15 @@ func TestValidateCertDownloadArgs(t *testing.T) {
 		{
 			name:     "id combined with --type",
 			args:     []string{"cert-uuid"},
-			certType: "IOS_DISTRIBUTION",
+			certType: "DISTRIBUTION",
 
 			wantErr:       true,
 			wantErrSubstr: "cannot be combined with <id>",
 		},
 		{
-			name:     "id combined with --team-id",
-			args:     []string{"cert-uuid"},
-			teamID:   "ABCDE12345",
+			name:   "id combined with --team-id",
+			args:   []string{"cert-uuid"},
+			teamID: "ABCDE12345",
 
 			wantErr:       true,
 			wantErrSubstr: "cannot be combined with <id>",
@@ -68,7 +68,7 @@ func TestValidateCertDownloadArgs(t *testing.T) {
 		{
 			name:     "bulk with --filename",
 			args:     []string{},
-			certType: "IOS_DISTRIBUTION",
+			certType: "DISTRIBUTION",
 			teamID:   "ABCDE12345",
 			filename: "custom",
 

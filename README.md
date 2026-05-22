@@ -112,8 +112,8 @@ hexsign certificates expiring
 
 hexsign profiles list [--type <t>] [--status <s>] [--bundle-id <id>] [--team-id <id>] [--page N --limit N]
 hexsign profiles get <id>
-hexsign profiles download <id> [--output-dir DIR] [--filename NAME]
-hexsign profiles download --bundle-id <id> [--team-id <id>] [--output-dir DIR]
+hexsign profiles download <id> [--output-dir DIR] [--filename NAME] [--install]
+hexsign profiles download --bundle-id <id> [--team-id <id>] [--output-dir DIR] [--install]
 hexsign profiles regenerate <id>
 hexsign profiles delete <id>
 hexsign profiles expiring
@@ -137,7 +137,7 @@ All commands accept `-o table|json` (default `table`).
 Both `certificates download` and `profiles download` accept a filter
 instead of a single ID for fetching every matching artefact in one go:
 
-- `hexsign certs download --type IOS_DISTRIBUTION --team-id ABCDE12345` —
+- `hexsign certs download --type DISTRIBUTION --team-id ABCDE12345` —
   downloads every distribution certificate for the given Apple Developer team
   as `.p12` + `.password` pairs. `--team-id` is required so you don't
   accidentally pull certs across multiple linked Apple accounts.
@@ -158,6 +158,16 @@ configures it so `codesign` can use the private keys without an interactive
 prompt. The keychain is ready to sign with immediately. The flag fails fast
 on non-macOS platforms, and refuses to overwrite an existing keychain file.
 
+### Install profiles for Xcode (macOS)
+
+`profiles download` accepts `--install` to copy every downloaded
+`.mobileprovision` into `~/Library/MobileDevice/Provisioning Profiles` as
+`<UUID>.mobileprovision` — the location and naming convention Xcode discovers
+profiles from — so no manual install step is needed. Each install prints
+`installed <name> -> <path>`; the `<path>` basename is the profile UUID, usable
+directly as a `PROVISIONING_PROFILE_SPECIFIER`. The flag fails fast on
+non-macOS platforms.
+
 ## CI example: fetch signing material before xcodebuild
 
 ```yaml
@@ -171,8 +181,8 @@ on non-macOS platforms, and refuses to overwrite an existing keychain file.
   run: |
     hexsign certificates download "$CERT_ID" --output-dir build/sign \
       --keychain "$RUNNER_TEMP/signing.keychain-db"
-    hexsign profiles download "$PROFILE_ID" --output-dir build/sign
-    # the keychain is ready — go straight to xcodebuild / codesign
+    hexsign profiles download "$PROFILE_ID" --output-dir build/sign --install
+    # keychain imported, profile installed — go straight to xcodebuild
 ```
 
 ## Development

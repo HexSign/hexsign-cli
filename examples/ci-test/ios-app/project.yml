@@ -1,0 +1,32 @@
+name: HexSignTestiOS
+options:
+  bundleIdPrefix: io.hexsign.citest
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+targets:
+  HexSignTestiOS:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.hexsign.citest.ios
+        PRODUCT_NAME: HexSignTestiOS
+        GENERATE_INFOPLIST_FILE: "YES"
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGN_STYLE: Manual
+        INFOPLIST_KEY_CFBundleDisplayName: HexSign CI Test
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: "YES"
+schemes:
+  HexSignTestiOS:
+    build:
+      targets:
+        HexSignTestiOS: all
+    archive:
+      config: Release

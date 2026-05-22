@@ -48,7 +48,7 @@ func TestClient_Do_SendsExpectedHeadersAndQuery(t *testing.T) {
 	c := newTestClient(t, srv, &stubProvider{token: "test-token"})
 
 	q := url.Values{}
-	q.Set("type", "IOS_DISTRIBUTION")
+	q.Set("type", "DISTRIBUTION")
 	q.Set("team_id", "ABCDE12345")
 
 	type reqBody struct {
@@ -68,7 +68,7 @@ func TestClient_Do_SendsExpectedHeadersAndQuery(t *testing.T) {
 	if got := captured.URL.Path; got != "/certificates" {
 		t.Errorf("path = %q, want /certificates", got)
 	}
-	if got := captured.URL.Query().Get("type"); got != "IOS_DISTRIBUTION" {
+	if got := captured.URL.Query().Get("type"); got != "DISTRIBUTION" {
 		t.Errorf("type query = %q", got)
 	}
 	if got := captured.URL.Query().Get("team_id"); got != "ABCDE12345" {
