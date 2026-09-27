@@ -13,3 +13,17 @@ examples/ci-test/*/*.xcodeproj/
 # our internal/output package is never silently swallowed.
 !internal/output/
 !internal/output/**
+
+# macOS
+.DS_Store
+
+# Editor / tooling
+.claude/
+
+# Apple signing material — never commit certificates or their passphrases
+*.p12
+*.password
+*.cer
+*.mobileprovision
+*.pem
+*.key
