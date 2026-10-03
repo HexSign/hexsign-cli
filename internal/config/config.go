@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	DefaultAPIBaseURL    = "https://api.hexsign.net"
-	DefaultCognitoDomain = "https://identity.hexsign.net"
-	DefaultOrigin        = "https://dashboard.hexsign.net"
+	DefaultAPIBaseURL    = "https://api.hexsign.io"
+	DefaultCognitoDomain = "https://identity.hexsign.io"
+	DefaultOrigin        = "https://dashboard.hexsign.io"
 	DefaultCallbackPort  = 53682
 	DefaultScopes        = "openid email profile hexsign-api/read hexsign-api/write"
 

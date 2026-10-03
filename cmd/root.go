@@ -37,7 +37,7 @@ func Execute() error {
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&flagOutput, "output", "o", "table", "output format: table|json")
-	rootCmd.PersistentFlags().StringVar(&flagAPIBase, "api-url", "", "override API base URL (default: https://api.hexsign.net)")
+	rootCmd.PersistentFlags().StringVar(&flagAPIBase, "api-url", "", "override API base URL (default: https://api.hexsign.io)")
 }
 
 func loadCfg() (*config.Config, error) {

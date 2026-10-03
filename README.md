@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://hexsign.io">hexsign.io</a>
   &nbsp;·&nbsp;
-  <a href="https://dashboard.hexsign.net">Dashboard</a>
+  <a href="https://dashboard.hexsign.io">Dashboard</a>
   &nbsp;·&nbsp;
   <a href="LICENSE">MIT License</a>
   &nbsp;·&nbsp;
@@ -48,7 +48,7 @@ The CLI runs in one of two modes, picked automatically from the environment:
 hexsign login
 ```
 
-This opens a browser to `identity.hexsign.net`, captures the authorization code on `http://localhost:53682/callback`, exchanges it for tokens, and stashes the refresh token in your OS keychain (`hexsign-cli` / `refresh_token`). On subsequent calls the CLI silently refreshes the ID token.
+This opens a browser to `identity.hexsign.io`, captures the authorization code on `http://localhost:53682/callback`, exchanges it for tokens, and stashes the refresh token in your OS keychain (`hexsign-cli` / `refresh_token`). On subsequent calls the CLI silently refreshes the ID token.
 
 ### CI: client credentials
 
@@ -63,7 +63,7 @@ env:
   HEXSIGN_CLIENT_SCOPES: hexsign-api/read hexsign-api/write   # optional
 ```
 
-When both `HEXSIGN_CLIENT_ID` and `HEXSIGN_CLIENT_SECRET` are present, the CLI fetches a fresh access token from `identity.hexsign.net/oauth2/token` on each invocation. The API enforces:
+When both `HEXSIGN_CLIENT_ID` and `HEXSIGN_CLIENT_SECRET` are present, the CLI fetches a fresh access token from `identity.hexsign.io/oauth2/token` on each invocation. The API enforces:
 
 - `GET` requests require `hexsign-api/read`.
 - All other methods require `hexsign-api/write`.
